@@ -8,16 +8,22 @@ pygame.mixer.init()
 WIDTH,HEIGHT = 1366,768
 WHITE = (255,255,255)
 window = pygame.display.set_mode((WIDTH,HEIGHT))
+pygame.display.set_caption("Pong")
 clock = pygame.time.Clock()
 
-SCORE_FONT = pygame.font.SysFont("Calibri",50)
-
+TITLE_FONT = pygame.font.SysFont("arial",200)
+GUIDE_FONT = pygame.font.SysFont("arial",50)
+SCORE_FONT = pygame.font.SysFont("calibri",50)
+player_1_score_text = SCORE_FONT.render("0",True,WHITE)
+player_2_score_text = SCORE_FONT.render("0",True,WHITE)
 # match end after player reach 10 score
 # a round end when ball pass any player
 won_sfx = pygame.mixer.Sound("assets/won.wav")
 ball_hit_sfx = pygame.mixer.Sound("assets/ball_hit.wav")
 
-game_active = True
+game_active = False
+in_main_menu = True
+in_game_over = False
 
 player_width = 20
 player_height = 150
@@ -60,9 +66,11 @@ def init_ball():
 init_ball()
 
 def reset_round(player_won : int):
-    global player_1_score,player_2_score,player_1_turn
+    global player_1_score,player_2_score,player_1_turn,player_1_score_text,player_2_score_text
     player_1_score += player_won == 1
     player_2_score += player_won == 2
+    player_1_score_text = SCORE_FONT.render(str(player_1_score),True,WHITE)
+    player_2_score_text = SCORE_FONT.render(str(player_2_score),True,WHITE)
     player_1_turn = not (player_won == 1)
     init_ball()
     won_sfx.play()
@@ -95,31 +103,40 @@ def collision_handler():
         ball_hit_sfx.play()
     
 
-def fixedUpdate():
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_w]:
-        player_1_rect.y -= player_speed
-    if keys[pygame.K_s]:
-        player_1_rect.y += player_speed
-    player_1_rect.clamp_ip(player_1_rect.x,0,player_width,HEIGHT)
-    if keys[pygame.K_UP]:
-        player_2_rect.y -= player_speed
-    if keys[pygame.K_DOWN]:
-        player_2_rect.y += player_speed
-    player_2_rect.clamp_ip(player_2_rect.x,0,player_width,HEIGHT)
-    
-    ball_rect.center += ball_vel
+def update():
+    global game_active,in_game_over
+    if game_active:
+        global in_game_over
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_w]:
+            player_1_rect.y -= player_speed
+        if keys[pygame.K_s]:
+            player_1_rect.y += player_speed
+        player_1_rect.clamp_ip(player_1_rect.x,0,player_width,HEIGHT)
+        if keys[pygame.K_UP]:
+            player_2_rect.y -= player_speed
+        if keys[pygame.K_DOWN]:
+            player_2_rect.y += player_speed
+        player_2_rect.clamp_ip(player_2_rect.x,0,player_width,HEIGHT)
+        
+        ball_rect.center += ball_vel
 
-    collision_handler()
+        collision_handler()
 
-    if ball_rect.left < -50:
-        reset_round(2)
-    elif ball_rect.right > WIDTH+50:
-        reset_round(1)
+        if ball_rect.left < -50:
+            reset_round(2)
+        elif ball_rect.right > WIDTH+50:
+            reset_round(1)
+        
+        if player_1_score >= 10:
+            in_game_over = True
+            game_active = False
+        elif player_2_score >= 10:
+            in_game_over = True
+            game_active = False
+        
 
 def draw_score():
-    player_1_score_text = SCORE_FONT.render(str(player_1_score),True,WHITE)
-    player_2_score_text = SCORE_FONT.render(str(player_2_score),True,WHITE)
     window.blit(player_1_score_text,(WIDTH/2-player_1_score_text.get_width()-10,10))
     window.blit(player_2_score_text,(WIDTH/2+10,10))
 
@@ -132,8 +149,8 @@ def draw_player():
 
 def draw_ball():
     pygame.draw.rect(window,WHITE,ball_rect)
-
-def drawScreen():
+    
+def draw_screen():
     window.fill('black')
     if game_active:
         draw_player()
@@ -141,7 +158,19 @@ def drawScreen():
         draw_score()
         draw_net()
     else:
-        
+        if in_main_menu:
+            title_text = TITLE_FONT.render("PONG",True,WHITE)
+            guide_text = GUIDE_FONT.render("Press SPACE to start",True,WHITE)
+            window.blit(title_text,(WIDTH/2-title_text.get_width()/2,HEIGHT/2-title_text.get_height()))
+            window.blit(guide_text,(WIDTH/2-guide_text.get_width()/2,HEIGHT/2+guide_text.get_height()))
+        elif in_game_over:
+            if player_1_turn:
+                title_text = TITLE_FONT.render("Player 2 Won",True,WHITE)
+            else:
+                title_text = TITLE_FONT.render("Player 1 Won",True,WHITE)
+            guide_text = GUIDE_FONT.render("Press SPACE to start",True,WHITE)
+            window.blit(title_text,(WIDTH/2-title_text.get_width()/2,HEIGHT/2-title_text.get_height()))
+            window.blit(guide_text,(WIDTH/2-guide_text.get_width()/2,HEIGHT/2+guide_text.get_height()))
     
 
 if __name__ == "__main__":
@@ -150,9 +179,27 @@ if __name__ == "__main__":
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if game_active:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    game_active = False
+                    in_main_menu = True
+            if in_main_menu:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    game_active = True
+                    in_main_menu = False
+            elif in_game_over:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    game_active = True
+                    in_game_over = False
+                    player_1_score,player_2_score = 0,0
+                    init_ball()
+                    player_1_rect.centery = HEIGHT/2
+                    player_2_rect.centery = HEIGHT/2
+                    player_1_score_text = SCORE_FONT.render("0",True,WHITE)
+                    player_2_score_text = SCORE_FONT.render("0",True,WHITE)
 
-        fixedUpdate()
-        drawScreen()
+        update()
+        draw_screen()
         pygame.display.flip()
         clock.tick(60)
         
