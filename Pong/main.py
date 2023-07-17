@@ -1,5 +1,5 @@
 from random import randint
-import pygame,math,sys,time
+import pygame,math,sys,time,os
 from pygame.math import Vector2
 pygame.init()
 pygame.font.init()
@@ -18,8 +18,9 @@ player_1_score_text = SCORE_FONT.render("0",True,WHITE)
 player_2_score_text = SCORE_FONT.render("0",True,WHITE)
 # match end after player reach 10 score
 # a round end when ball pass any player
-won_sfx = pygame.mixer.Sound("assets/won.wav")
-ball_hit_sfx = pygame.mixer.Sound("assets/ball_hit.wav")
+path = os.path.dirname(os.path.abspath(__file__))
+won_sfx = pygame.mixer.Sound(path+"/assets/won.wav")
+ball_hit_sfx = pygame.mixer.Sound(path+"/assets/ball_hit.wav")
 
 game_active = False
 in_main_menu = True
