@@ -1,4 +1,4 @@
-from random import randint
+from random import randint, randrange
 import pygame,math,sys,time,os
 from pygame import Vector2
 pygame.init()
@@ -8,6 +8,7 @@ tile_size = 32*scale
 WIDTH,HEIGHT = tile_size*9,tile_size*16
 ground_height = tile_size*3
 bird_size = tile_size*2
+relative_scale = bird_size//32
 
 window = pygame.display.set_mode((WIDTH,HEIGHT))
 clock = pygame.time.Clock()
@@ -32,7 +33,11 @@ bird_up_cnt = 0
 pipes = []
 pipe_spawn_cd = 60
 pipe_spawn_time = 0
-
+pipe_gap = 0.2*HEIGHT
+pipe_img = pygame.image.load(path+'/assets/sprites/pipe.png')
+pipe_img = pygame.transform.scale_by(pipe_img,(relative_scale,relative_scale))
+pipe_spawn_x = WIDTH
+pipe_speed = WIDTH/(2.5*60)
 
 def rot_center(image : pygame.Surface, angle):
     """rotate an image while keeping its center and size"""
@@ -46,13 +51,20 @@ def rot_center(image : pygame.Surface, angle):
 def draw_screen():
     window.fill("black")
     window.blit(background_img,(0,0))
+
+    for pipe_pos in pipes:
+        window.blit(pipe_img,pipe_pos)
+
     window.blit(ground_img,(0,HEIGHT-ground_height))
     window.blit(rot_center(bird_img,bird_angle),bird_pos)
+
 
 def update_pipe():
     global pipe_spawn_time,pipes
     pipe_spawn_time += 1
-    
+    if pipe_spawn_time >= pipe_spawn_cd:
+        pipe_spawn_time = 0
+        pipes.append(Vector2(pipe_spawn_x,randrange(0,HEIGHT-ground_height)))
 
 def update_bird():
     global bird_img_id,bird_anim_cnt,bird_vely,bird_angle,bird_up_cnt
