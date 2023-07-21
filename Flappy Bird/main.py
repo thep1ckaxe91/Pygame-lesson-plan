@@ -5,10 +5,11 @@ pygame.init()
 scale = 2
 gravity = 0.3*scale
 tile_size = 32*scale
-WIDTH,HEIGHT = tile_size*9,tile_size*16
 ground_height = tile_size*3
 bird_size = tile_size*2
 relative_scale = bird_size//32
+
+WIDTH,HEIGHT = relative_scale*144,relative_scale*256
 
 window = pygame.display.set_mode((WIDTH,HEIGHT))
 clock = pygame.time.Clock()
@@ -16,8 +17,12 @@ clock = pygame.time.Clock()
 path = os.path.dirname(os.path.abspath(__file__))
 background_img = pygame.transform.scale(pygame.image.load(path+'/assets/sprites/background_day.png'),(WIDTH,HEIGHT))
 ground_img = pygame.transform.scale(pygame.image.load(path+'/assets/sprites/ground.png'),(WIDTH,ground_height))
+instruction_img = pygame.transform.scale_by(pygame.image.load(path+'/assets/sprites/instruction.png'),(relative_scale,relative_scale))
+get_ready_img = pygame.transform.scale_by(pygame.image.load(path+'/assets/sprites/get_ready.png'),(relative_scale,relative_scale))
+game_title_img = pygame.transform.scale_by(pygame.image.load(path+'/assets/sprites/game_title.png'),(relative_scale,relative_scale))
+play_button_img = pygame.transform.scale_by(pygame.image.load(path+'/assets/sprites/play_button.png'),(relative_scale,relative_scale))
+play_button_rect = play_button_img.get_rect(center = (WIDTH/2,HEIGHT*2/3))
 score_font = pygame.font.Font(path+'/assets/font/04B_19__.TTF',80)
-
 
 flap_sfx = pygame.mixer.Sound(path+'/assets/sfx/flap.wav')
 die_sfx = pygame.mixer.Sound(path+'/assets/sfx/die.wav')
@@ -51,7 +56,7 @@ bird_score = 0
 pipes : list[list[pygame.Rect]]= []
 pipe_spawn_cd = 80
 pipe_spawn_time = 0
-pipe_gap = 0.19*HEIGHT
+pipe_gap = 0.2*HEIGHT
 pipe_img = pygame.image.load(path+'/assets/sprites/pipe.png')
 pipe_img = pygame.transform.scale_by(pipe_img,(relative_scale,relative_scale))
 pipe_spawn_x = WIDTH
@@ -85,7 +90,24 @@ def draw_screen():
         for pipe_info in pipes:
             window.blit(pipe_img,pipe_info[0])
             window.blit(pygame.transform.flip(pipe_img,False,True),pipe_info[1])
-
+        if not is_alive:
+            window.blit(play_button_img,play_button_rect)
+    else:
+        window.blit(instruction_img,(WIDTH/2-instruction_img.get_width()/2,HEIGHT/2-instruction_img.get_height()/2))
+        window.blit(
+            get_ready_img,
+            (
+                WIDTH/2-get_ready_img.get_width()/2,
+                HEIGHT/2-instruction_img.get_height()/2-get_ready_img.get_height()
+            )
+        )
+        window.blit(
+            game_title_img,
+            (
+                WIDTH/2-get_ready_img.get_width()/2,
+                (HEIGHT/2-instruction_img.get_height()/2-get_ready_img.get_height())/2-game_title_img.get_height()/2
+            )
+        )
     window.blit(ground_img,(0,HEIGHT-ground_height))
     window.blit(cur_bird_surf,bird_pos)
 
@@ -196,15 +218,14 @@ if __name__ == "__main__":
                 if is_alive:
                     die_sfx.play()
                 is_alive = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    reset_game()
-                if is_alive and (event.key == pygame.K_SPACE or event.key == pygame.K_UP):
-                    is_playing = True
-                    bird_vely = -bird_jump_vel
-                    bird_angle = 30
-                    bird_up_cnt = 0
-                    flap_sfx.play()
+            elif is_alive and (event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]):
+                is_playing = True
+                bird_vely = -bird_jump_vel
+                bird_angle = 30
+                bird_up_cnt = 0
+                flap_sfx.play()
+            elif is_alive == False and (event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]) and play_button_rect.collidepoint(pygame.mouse.get_pos()):
+                reset_game()
         update()
         draw_screen()
         pygame.display.flip()
